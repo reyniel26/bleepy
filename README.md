@@ -3,11 +3,11 @@ Bleepy is a python program can block tagalog and english profanity audio in vide
 
 ## Python modules needed
 1. vosk-api
-   Offline speech recognition 
-   https://github.com/alphacep/vosk-api
+   - Offline speech recognition 
+   - https://github.com/alphacep/vosk-api
 
 2. alt-profanity-check
-   Profanity checker in string that uses machine learning
-   https://pypi.org/project/alt-profanity-check/
-   https://github.com/dimitrismistriotis/profanity-check
+   - Profanity checker in string that uses machine learning
+   - https://pypi.org/project/alt-profanity-check/
+   - https://github.com/dimitrismistriotis/profanity-check
    
