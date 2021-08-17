@@ -1,0 +1,4 @@
+#Ignore this files
+__pycache__/
+model/
+bleepy-test-files/
