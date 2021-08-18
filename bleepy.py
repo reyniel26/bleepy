@@ -4,9 +4,10 @@ import sys
 import wave
 import subprocess
 
+
 class MediaFile:
     def __init__(self):
-        self.file = "NaN"
+        self.__file = "NaN"
     
     #Private Method that set file default file if null and doesnt alter the file set in the class
     def __setFileIfNull(self, file):
@@ -20,11 +21,11 @@ class MediaFile:
 
     #Set File
     def setFile(self, file):
-        self.file = self.__safeSetFile(file)
+        self.__file = self.__safeSetFile(file)
     
     #Return File
     def getFile(self):
-        return self.file
+        return self.__file
     
     #Return boolean , if file exist
     def isFileExist(self, file = ""):
@@ -53,30 +54,30 @@ class MediaFile:
             output = output.strip(x) 
         return float(output)
 
-#SpeechRecognition
+#SpeechToText or STT
 #model = language-model
 #file = file
 
 class SpeechToText(MediaFile):
     def __init__(self):
         super().__init__()
-        self.model = "model"
-        self.sample_rate=16000
+        self.__model = "model"
+        self.__sample_rate=16000
     
     def setModel(self, model="model"):
         self.checkModelExist(model)
-        self.model = model
+        self.__model = model
     
     def setSampleRate(self, sample_rate = 16000):
-        self.sample_rate = sample_rate
+        self.__sample_rate = sample_rate
     
     def getModel(self):
-        return self.model
+        return self.__model
     
     def getSampleRate(self):
-        return self.sample_rate
+        return self.__sample_rate
     
-    #Return STT Class ffmpeg command
+    #Return FMMPEG Command for STT
     def getSttCmd(self):
         return ['ffmpeg', '-loglevel', 'quiet', '-i',self.getFile(), '-ar', str(self.getSampleRate()) , '-ac', '1', '-f', 's16le', '-']
     
@@ -89,16 +90,20 @@ class SpeechToText(MediaFile):
             print ("Warning: Model Directory not found ("+model+"). Please download the model from https://alphacephei.com/vosk/models and unpack as 'model' in the current folder.")
             exit (1)
     
-    def run(self, file):
+    #Return KaldiRecognizer
+    def recognizer(self,file):
         self.setFile(file)
-
         self.checkModelExist()
 
-        # SetLogLevel(0)
+        SetLogLevel(0)
         model = Model(self.getModel())
         rec = KaldiRecognizer(model, self.getSampleRate())
-        #output time and words
-        rec.SetWords(True)
+        rec.SetWords(True) #output time and words
+
+        return rec
+
+    def run(self, file):
+        rec = self.recognizer(file)
 
         process = subprocess.Popen(self.getSttCmd(),stdout=subprocess.PIPE)
 
@@ -112,4 +117,7 @@ class SpeechToText(MediaFile):
                 print(rec.PartialResult())
 
         print(rec.FinalResult())
+
+
+
 
