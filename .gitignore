@@ -2,3 +2,6 @@
 __pycache__/
 model/
 bleepy-test-files/
+
+test.py
+notes.txt

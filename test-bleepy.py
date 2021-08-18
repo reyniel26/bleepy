@@ -1,5 +1,5 @@
-from bleepy import SpeechRecognition
+from bleepy import SpeechToText
 
-stt = SpeechRecognition()
+stt = SpeechToText()
 filename = input("What filename? ")
 stt.run(filename)
