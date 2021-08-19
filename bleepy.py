@@ -6,80 +6,168 @@ import subprocess
 
 
 class MediaFile:
+    #Abstraction for MediaFile
     def __init__(self):
         self.__file = "NaN"
+        self.__allowedExtensions = ["mp4","mp3"]
+        self.__extension = ""
+        self.__duration = 0.0
     
-    #Private Method that set file default file if null and doesnt alter the file set in the class
     def __setFileIfNull(self, file):
+        #Private Method that set file default file if null and doesnt alter the file set in the class
         return self.getFile() if file == "" else file
-    
-    #Private Method use to safe set file, doenst alter the file directly
+     
     def __safeSetFile(self,file):
+        #Private Method use to safe set file, doenst alter the file directly
         file = self.__setFileIfNull(file)
-        self.checkFileExist(file)
+        self.checkIsFileAllowed(file)
         return file
 
-    #Set File
     def setFile(self, file):
+        #Set File
         self.__file = self.__safeSetFile(file)
+        self.__setFileExtension(file)
+        self.__setDuration(file)
     
-    #Return File
-    def getFile(self):
-        return self.__file
+    def setAllowedExts(self, extensions):
+        self.__allowedExtensions = extensions
+
+    def __setFileExtension(self, file):
+        #Return File Extension
+        self.__extension = self.getExtension(file)
     
-    #Return boolean , if file exist
-    def isFileExist(self, file = ""):
-        return os.path.exists(self.__setFileIfNull(file))
-    
-    #Check file exist, if not, print error
-    def checkFileExist(self, file):
-        if not self.isFileExist(file):
-            print ("Warning: File: ("+file+") not found. Please input or set the correct directory of the file")
-            exit (1)
-    
-    #Return File Extension
-    def getFileExtension(self, file = ""):
-        file = self.__safeSetFile(file)
-        return file.rsplit('.',1)[1]
-    
-    #Return Full Duration of the Media File
-    def getFullDuration(self, file = ""):
-        file = file = self.__safeSetFile(file)
-        #durationcmd = 'ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"'+file+'\"'
+    def __setDuration(self, file):
+        #Return Full Duration of the Media File
+        # #durationcmd = 'ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"'+file+'\"'
         durationcmd = ['ffprobe', '-v' ,'error', '-show_entries', 'format=duration', '-of' ,'default=noprint_wrappers=1:nokey=1', file]
         proc = subprocess.Popen(durationcmd, stdout=subprocess.PIPE)
         output = proc.stdout.read()
         output = str(output).replace("\\","")
         for x in ("b","\'","n","r"):
             output = output.strip(x) 
-        return float(output)
+        self.__duration = float(output)
 
-#SpeechToText or STT
-#model = language-model
-#file = file
+    def getFile(self):
+        #Return File
+        return self.__file
 
-class SpeechToText(MediaFile):
+    def getAllowedExts(self):
+        return self.__allowedExtensions
+
+    def getFileExtension(self):
+        return self.__extension
+
+    def getExtension(self, file):
+        return file.rsplit('.',1)[1]
+
+    def getDuration(self):
+        return self.__duration
+
+    def isFileExist(self, file = ""):
+        #Return boolean , if file exist
+        return os.path.exists(self.__setFileIfNull(file))
+     
+    def __checkIsFileExist(self, file):
+        #Check file exist, if not, print error
+        if not self.isFileExist(file):
+            print ("Warning: File: ("+file+") not found. Please input or set the correct directory of the file")
+            exit (1)
+    
+    def isAllowedExt(self, extension):
+        return extension in self.getAllowedExts()
+    
+    def __checkIsAllowedExt(self, extension):
+        #Check file extension, if not, print error
+        if not self.isAllowedExt(extension):
+            print ("Warning: File Extension ("+extension+") is not allowed. Please input valid file type "
+                    + str(self.getAllowedExts()) 
+                    + " or add extensions by using \'addAllowedExt(str)\' or \'extendAllowedExt(list)\' " )
+            exit (1)
+    
+    def isFileAllowed(self,file):
+        return self.isFileExist(file) and self.isAllowedExt(self.getExtension(file))
+    
+    def checkIsFileAllowed(self, file):
+        self.__checkIsFileExist(file)
+        self.__checkIsAllowedExt(self.getExtension(file))
+
+    def addAllowedExt(self,extension):
+        #Add one allowed Extension
+        exts = self.getAllowedExts()
+        exts.append(extension)
+        self.setAllowedExts(exts)
+    
+    def extendAllowedExt(self,extensions):
+        #add list allowed extension
+        exts = self.getAllowedExts()
+        exts.extend(extensions)
+        self.setAllowedExts(exts)
+    
+    def removeAllowedExt(self,extension):
+        #remove one allowed extension
+        exts = self.getAllowedExts()
+        exts.remove(extension)
+        self.setAllowedExts(exts)
+
+
+class VideoFile(MediaFile):
+    #MediaFile is a VideoFile
     def __init__(self):
         super().__init__()
-        self.__model = "model"
+        self.setAllowedExts(["mp4","mpeg","mkv"])
+
+class SpeechToText():
+    #SpeechToText or STT
+    #model = language-model
+    #file = file
+
+    def __init__(self, model = "model"):
+        super().__init__()
+        self.__model = model
         self.__sample_rate=16000
+        self.__video = VideoFile()
+
+        print("Setting up Recognizer for STT...")
+        SetLogLevel(0)
+        model = Model(self.getModel())
+        self.__recognizer = KaldiRecognizer(model, self.getSampleRate())
+        self.__recognizer.SetWords(True)
+
     
     def setModel(self, model="model"):
         self.checkModelExist(model)
         self.__model = model
+        self.updateRecognizer()
     
     def setSampleRate(self, sample_rate = 16000):
         self.__sample_rate = sample_rate
+        self.updateRecognizer()
     
+    def setVideo(self,video):
+        self.__video = video
+    
+    def updateRecognizer(self):
+        SetLogLevel(0)
+        print("Updating Recognizer for STT...")
+        model = Model(self.getModel())
+        self.__recognizer = KaldiRecognizer(model, self.getSampleRate())
+        self.__recognizer.SetWords(True)
+        
     def getModel(self):
         return self.__model
+    
+    def getVideo(self):
+        return self.__video
     
     def getSampleRate(self):
         return self.__sample_rate
     
-    #Return FMMPEG Command for STT
+    def getRecognizer(self):
+        return self.__recognizer
+    
     def getSttCmd(self):
-        return ['ffmpeg', '-loglevel', 'quiet', '-i',self.getFile(), '-ar', str(self.getSampleRate()) , '-ac', '1', '-f', 's16le', '-']
+        #Return FMMPEG Command for STT
+        return ['ffmpeg', '-loglevel', 'quiet', '-i',self.getVideo().getFile(), '-ar', str(self.getSampleRate()) , '-ac', '1', '-f', 's16le', '-']
     
     def isModelExist(self, model = ""):
         model = self.getModel() if model == "" else model
@@ -89,21 +177,11 @@ class SpeechToText(MediaFile):
         if not self.isModelExist(model):
             print ("Warning: Model Directory not found ("+model+"). Please download the model from https://alphacephei.com/vosk/models and unpack as 'model' in the current folder.")
             exit (1)
-    
-    #Return KaldiRecognizer
-    def recognizer(self,file):
-        self.setFile(file)
+
+    def run(self, video):
+        self.setVideo(video)
         self.checkModelExist()
-
-        SetLogLevel(0)
-        model = Model(self.getModel())
-        rec = KaldiRecognizer(model, self.getSampleRate())
-        rec.SetWords(True) #output time and words
-
-        return rec
-
-    def run(self, file):
-        rec = self.recognizer(file)
+        rec = self.getRecognizer()
 
         process = subprocess.Popen(self.getSttCmd(),stdout=subprocess.PIPE)
 
