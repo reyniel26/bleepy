@@ -1,10 +1,13 @@
-from bleepy import VideoFile, SpeechToText
+from bleepy import VideoFile, ProfanityExtractor
 
-stt = SpeechToText()
+bleepy = ProfanityExtractor()
 video = VideoFile()
 
-filename = input("What filename? ") #bleepy-test-files/tyler1sample.mp4
+filename = input("What filename? ")
 video.setFile(filename)
 
-
-stt.run(video)
+bleepy.run(video)
+profanities = bleepy.getProfanities()
+print("List of Profanities Detected")
+for profanity in profanities:
+    print(profanity["word"])

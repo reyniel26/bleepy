@@ -4,6 +4,8 @@ import sys
 import wave
 import subprocess
 
+from profanity_check import predict, predict_prob
+
 
 class MediaFile:
     #Abstraction for MediaFile
@@ -109,7 +111,6 @@ class MediaFile:
         exts.remove(extension)
         self.setAllowedExts(exts)
 
-
 class VideoFile(MediaFile):
     #MediaFile is a VideoFile
     def __init__(self):
@@ -132,8 +133,7 @@ class SpeechToText():
         model = Model(self.getModel())
         self.__recognizer = KaldiRecognizer(model, self.getSampleRate())
         self.__recognizer.SetWords(True)
-
-    
+  
     def setModel(self, model="model"):
         self.checkModelExist(model)
         self.__model = model
@@ -196,6 +196,84 @@ class SpeechToText():
 
         print(rec.FinalResult())
 
+class ProfanityDetector:
 
+    def extractListOfResults(self,txt): 
+        #Make List of Results
+        #Vosk, KaldiRecognizer obj.Result() and obj.FinalResult() return txt
+        a = txt.split('[')#Split the Result str in open bracket
+        b = a[1].split(']') #Get the 2nd half then Split in Closing Bracket
+        c = b[0].split(', ') #Get the 1st half then Split in comma and space
+        for i in range(len(c)):
+            c[i] = c[i].strip("{}") #remove brackets
+            c[i] = c[i].replace('\n','') #replace newline
+            c[i] = c[i].replace('\"','') #replace "
+        return c #return list of Results
 
+    def extractListOfWords(self,txt): 
+        #Make List of Words, extracted from the list of Results
+        words = [] #create new list
+        if "result" in txt: #Check if there is result or words
+            for item in self.extractListOfResults(txt):
+                attrs= item.split(',') #Split the items into attributes in comma
+                tempdict = {} #create temp dict
+                for attr in attrs:
+                    data = attr.split(':')#Then Split the attributes in : separating the key and value
+                    tempdict[data[0].strip()] = data[1].strip()#data[0] is the key, data[1] is the value
+                words.append(tempdict)
+        #To output this, you can use for loop
+        #another example: print(extractListOfWords(txt)[0]["word"])
+        return words #return this list of words (dict)
 
+    def extractListOfProfanity(self,txt):
+        words = self.extractListOfWords(txt)
+        profanity = []
+        for word in words:
+            if bool(predict([word["word"]])):
+                profanity.append(word)
+        return profanity #list of dictionaries 
+
+class ProfanityExtractor(SpeechToText):
+    #ProfanityExtractor is STT with ProfanityDetector
+    def __init__(self, model = "model"):
+        super().__init__(model)
+        self.__profanities = []
+    
+    def setProfanities(self,profanities):
+        self.__profanities = profanities
+    
+    def getProfanities(self):
+        return self.__profanities
+    
+    def addProfanity(self, newprofanity):
+        profanities = self.getProfanities()
+        profanities.append(newprofanity)
+        self.setProfanities(profanities)
+    
+    def extendProfanities(self, newprofanities):
+        profanities = self.getProfanities()
+        profanities.extend(newprofanities)
+        self.setProfanities(profanities)
+    
+    def run(self, video):
+        self.setVideo(video)
+        self.checkModelExist()
+        rec = self.getRecognizer()
+        profanityDetector = ProfanityDetector()
+
+        process = subprocess.Popen(self.getSttCmd(),stdout=subprocess.PIPE)
+
+        while True:
+            data = process.stdout.read(4000)
+            if len(data) == 0:
+                break
+            if rec.AcceptWaveform(data):
+                txt = rec.Result()
+                print(txt)
+                self.extendProfanities(profanityDetector.extractListOfProfanity(txt))
+            else:
+                print(rec.PartialResult())
+
+        txt = rec.FinalResult()
+        print(txt)
+        self.extendProfanities(profanityDetector.extractListOfProfanity(txt))
