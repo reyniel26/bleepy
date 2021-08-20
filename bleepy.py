@@ -6,14 +6,9 @@ import subprocess
 
 from profanity_check import predict, predict_prob
 
-
-class MediaFile:
-    #Abstraction for MediaFile
+class File:
     def __init__(self):
         self.__file = "NaN"
-        self.__allowedExtensions = ["mp4","mp3"]
-        self.__extension = ""
-        self.__duration = 0.0
     
     def __setFileIfNull(self, file):
         #Private Method that set file default file if null and doesnt alter the file set in the class
@@ -28,6 +23,38 @@ class MediaFile:
     def setFile(self, file):
         #Set File
         self.__file = self.__safeSetFile(file)
+    
+    def getFile(self):
+        #Return File
+        return self.__file
+    
+    def isFileExist(self, file = ""):
+        #Return boolean , if file exist
+        return os.path.exists(self.__setFileIfNull(file))
+     
+    def checkIsFileExist(self, file):
+        #Check file exist, if not, print error
+        if not self.isFileExist(file):
+            print ("Warning: File: ("+file+") not found. Please input or set the correct directory of the file")
+            exit (1)
+
+    def isFileAllowed(self,file):
+        return self.isFileExist(file)
+
+    def checkIsFileAllowed(self, file):
+        self.checkIsFileExist(file)
+    
+class MediaFile(File):
+    #Abstraction for MediaFile
+    def __init__(self):
+        super().__init__()
+        self.__allowedExtensions = ["mp4","mp3"]
+        self.__extension = ""
+        self.__duration = 0.0
+    
+    def setFile(self, file):
+        #Set File , Override
+        super().setFile(file)
         self.__setFileExtension(file)
         self.__setDuration(file)
     
@@ -49,10 +76,6 @@ class MediaFile:
             output = output.strip(x) 
         self.__duration = float(output)
 
-    def getFile(self):
-        #Return File
-        return self.__file
-
     def getAllowedExts(self):
         return self.__allowedExtensions
 
@@ -64,21 +87,11 @@ class MediaFile:
 
     def getDuration(self):
         return self.__duration
-
-    def isFileExist(self, file = ""):
-        #Return boolean , if file exist
-        return os.path.exists(self.__setFileIfNull(file))
-     
-    def __checkIsFileExist(self, file):
-        #Check file exist, if not, print error
-        if not self.isFileExist(file):
-            print ("Warning: File: ("+file+") not found. Please input or set the correct directory of the file")
-            exit (1)
     
     def isAllowedExt(self, extension):
         return extension in self.getAllowedExts()
     
-    def __checkIsAllowedExt(self, extension):
+    def checkIsAllowedExt(self, extension):
         #Check file extension, if not, print error
         if not self.isAllowedExt(extension):
             print ("Warning: File Extension ("+extension+") is not allowed. Please input valid file type "
@@ -87,11 +100,13 @@ class MediaFile:
             exit (1)
     
     def isFileAllowed(self,file):
-        return self.isFileExist(file) and self.isAllowedExt(self.getExtension(file))
+        #Override
+        return super().isFileAllowed() and self.isAllowedExt(self.getExtension(file))
     
     def checkIsFileAllowed(self, file):
-        self.__checkIsFileExist(file)
-        self.__checkIsAllowedExt(self.getExtension(file))
+        #Override
+        super().checkIsFileAllowed(file)
+        self.checkIsAllowedExt(self.getExtension(file))
 
     def addAllowedExt(self,extension):
         #Add one allowed Extension
@@ -112,10 +127,16 @@ class MediaFile:
         self.setAllowedExts(exts)
 
 class VideoFile(MediaFile):
-    #MediaFile is a VideoFile
+    #Video file is a MediaFile
     def __init__(self):
         super().__init__()
         self.setAllowedExts(["mp4","mpeg","mkv"])
+
+class AudioFile(MediaFile):
+    #AudioFile is a mediafile
+    def __init__(self):
+        super().__init__()
+        self.setAllowedExts(["mp3","wav"])
 
 class SpeechToText():
     #SpeechToText or STT
@@ -277,3 +298,32 @@ class ProfanityExtractor(SpeechToText):
         txt = rec.FinalResult()
         print(txt)
         self.extendProfanities(profanityDetector.extractListOfProfanity(txt))
+
+class ProfanityBlocker:
+    def __init__(self):
+        self.__video = VideoFile()
+        self.__audio = AudioFile()
+        self.__profanities = []
+    
+    def setVideo(self, video):
+        self.__video = video
+    
+    def setAudio(self, audio):
+        self.__audio = audio
+    
+    def setProfanities(self, profanities):
+        self.__profanities = profanities
+    
+    def getVideo(self):
+        return self.__video
+    
+    def getAudio(self):
+        return self.__audio
+    
+    def getProfanities(self):
+        return self.__profanities
+    
+    def run(self, video, audio, profanities):
+        self.setVideo(video)
+        self.setAudio(audio)
+        self.setProfanities(profanities)
