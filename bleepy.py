@@ -48,7 +48,7 @@ class MediaFile(File):
     #Abstraction for MediaFile
     def __init__(self):
         super().__init__()
-        self.__allowedExtensions = ["mp4","mp3"]
+        self.__allowedExtensions = {"mp4","mp3"}
         self.__extension = ""
         self.__duration = 0.0
     
@@ -111,14 +111,17 @@ class MediaFile(File):
     def addAllowedExt(self,extension):
         #Add one allowed Extension
         exts = self.getAllowedExts()
-        exts.append(extension)
-        self.setAllowedExts(exts)
+        if extension not in exts:
+            exts.add(extension)
+            self.setAllowedExts(exts)
     
     def extendAllowedExt(self,extensions):
         #add list allowed extension
         exts = self.getAllowedExts()
-        exts.extend(extensions)
-        self.setAllowedExts(exts)
+        for ext in extensions:
+            if ext not in exts:
+                exts.add(ext)
+                self.setAllowedExts(exts)
     
     def removeAllowedExt(self,extension):
         #remove one allowed extension
@@ -130,13 +133,13 @@ class VideoFile(MediaFile):
     #Video file is a MediaFile
     def __init__(self):
         super().__init__()
-        self.setAllowedExts(["mp4","mpeg","mkv"])
+        self.setAllowedExts({"mp4","mpeg","mkv"})
 
 class AudioFile(MediaFile):
     #AudioFile is a mediafile
     def __init__(self):
         super().__init__()
-        self.setAllowedExts(["mp3","wav"])
+        self.setAllowedExts({"mp3","wav"})
 
 class SpeechToText():
     #SpeechToText or STT
