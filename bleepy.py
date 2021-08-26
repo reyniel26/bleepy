@@ -142,12 +142,14 @@ class SpeechToText():
     #SpeechToText or STT
     #model = language-model
     #file = file
+    #list of results (txt)
 
     def __init__(self, model = "model"):
         super().__init__()
         self.__model = model
         self.__sample_rate=16000
         self.__video = VideoFile()
+        self.__results = []
 
         print("Setting up Recognizer for STT...")
         SetLogLevel(0)
@@ -167,6 +169,14 @@ class SpeechToText():
     def setVideo(self,video):
         self.__video = video
     
+    def setResults(self,results):
+        self.__results = results
+    
+    def addResult(self,newresult):
+        results = self.getResults()
+        results.append(newresult)
+        self.setResults(results)
+
     def updateRecognizer(self):
         SetLogLevel(0)
         print("Updating Recognizer for STT...")
@@ -183,6 +193,9 @@ class SpeechToText():
     def getSampleRate(self):
         return self.__sample_rate
     
+    def getResults(self):
+        return self.__results
+
     def getRecognizer(self):
         return self.__recognizer
     
@@ -211,11 +224,15 @@ class SpeechToText():
             if len(data) == 0:
                 break
             if rec.AcceptWaveform(data):
-                print(rec.Result())
+                result = rec.Result()
+                print(result)
+                self.addResult(result)
             else:
                 print(rec.PartialResult())
 
-        print(rec.FinalResult())
+        finalresult = rec.FinalResult()
+        print(result)
+        self.addResult(finalresult)
 
 class ProfanityDetector:
 
@@ -254,10 +271,10 @@ class ProfanityDetector:
                 profanity.append(word)
         return profanity #list of dictionaries 
 
-class ProfanityExtractor(SpeechToText):
-    #ProfanityExtractor is STT with ProfanityDetector
-    def __init__(self, model = "model"):
-        super().__init__(model)
+class ProfanityExtractor():
+    # New Process
+    # Profanity Extractor should only extract profanity from the list of text results return by STT
+    def __init__(self):
         self.__profanities = []
     
     def setProfanities(self,profanities):
@@ -275,29 +292,11 @@ class ProfanityExtractor(SpeechToText):
         profanities = self.getProfanities()
         profanities.extend(newprofanities)
         self.setProfanities(profanities)
-    
-    def run(self, video):
-        self.setVideo(video)
-        self.checkModelExist()
-        rec = self.getRecognizer()
+     
+    def run(self,results):
         profanityDetector = ProfanityDetector()
-
-        process = subprocess.Popen(self.getSttCmd(),stdout=subprocess.PIPE)
-
-        while True:
-            data = process.stdout.read(4000)
-            if len(data) == 0:
-                break
-            if rec.AcceptWaveform(data):
-                txt = rec.Result()
-                print(txt)
-                self.extendProfanities(profanityDetector.extractListOfProfanity(txt))
-            else:
-                print(rec.PartialResult())
-
-        txt = rec.FinalResult()
-        print(txt)
-        self.extendProfanities(profanityDetector.extractListOfProfanity(txt))
+        for result in results:
+            self.extendProfanities(profanityDetector.extractListOfProfanity(result))
 
 class ProfanityBlocker:
     def __init__(self):
@@ -323,7 +322,23 @@ class ProfanityBlocker:
     def getProfanities(self):
         return self.__profanities
     
+    def split(self):
+        pass
+
+    def replace(self):
+        pass
+
+    def concat(self):
+        pass
+    
     def run(self, video, audio, profanities):
         self.setVideo(video)
         self.setAudio(audio)
         self.setProfanities(profanities)
+
+        clips = []
+        videoduration = self.getVideo().getDuration()
+        laststart = 0.0
+
+        for profanity in self.getProfanities():
+            pass
