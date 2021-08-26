@@ -5,3 +5,7 @@ bleepy-test-files/
 
 test.py
 notes.txt
+
+*.mp4
+*.txt
+*.mp3
