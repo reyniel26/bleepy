@@ -96,7 +96,7 @@ class MediaFile(File):
         if not self.isAllowedExt(extension):
             print ("Warning: File Extension ("+extension+") is not allowed. Please input valid file type "
                     + str(self.getAllowedExts()) 
-                    + " or add extensions by using \'addAllowedExt(str)\' or \'extendAllowedExt(list)\' " )
+                    + " or add extensions by using \'addAllowedExt(str)\' or \'updateAllowedExt(list)\' " )
             exit (1)
     
     def isFileAllowed(self,file):
@@ -115,14 +115,12 @@ class MediaFile(File):
             exts.add(extension)
             self.setAllowedExts(exts)
     
-    def extendAllowedExt(self,extensions):
+    def updateAllowedExt(self,extensions):
         #add list allowed extension
         exts = self.getAllowedExts()
-        for ext in extensions:
-            if ext not in exts:
-                exts.add(ext)
-                self.setAllowedExts(exts)
-    
+        exts.update(extensions)
+        self.setAllowedExts(exts)
+
     def removeAllowedExt(self,extension):
         #remove one allowed extension
         exts = self.getAllowedExts()
