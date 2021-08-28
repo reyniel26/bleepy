@@ -1,17 +1,22 @@
-from bleepy import VideoFile, ProfanityExtractor, SpeechToText
+from bleepy import VideoFile, AudioFile, ProfanityExtractor, SpeechToText, ProfanityBlocker
 
 stt = SpeechToText()
 extractor = ProfanityExtractor()
+profanityBlocker = ProfanityBlocker()
 video = VideoFile()
+audio = AudioFile()
 
-filename = input("What filename? ") 
-video.setFile(filename)
+
+video.setFile( input("What video you want to block profanity? ") ) 
+audio.setFile( input("What bleep sound? ") )
 
 stt.run(video)
 print(len(stt.getResults()))
 extractor.run(stt.getResults())
 
 profanities = extractor.getProfanities()
+profanityBlocker.run(video,audio,profanities)
+
 print("List of Profanities Detected")
 for profanity in profanities:
     print(profanity["word"])

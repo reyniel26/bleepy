@@ -5,6 +5,7 @@ import wave
 import subprocess
 
 from profanity_check import predict, predict_prob
+import uuid #create unique random id
 
 class File:
     def __init__(self):
@@ -303,7 +304,6 @@ class ProfanityBlocker:
     def __init__(self):
         self.__video = VideoFile()
         self.__audio = AudioFile()
-        self.__profanities = []
     
     def setVideo(self, video):
         self.__video = video
@@ -311,17 +311,20 @@ class ProfanityBlocker:
     def setAudio(self, audio):
         self.__audio = audio
     
-    def setProfanities(self, profanities):
-        self.__profanities = profanities
-    
     def getVideo(self):
         return self.__video
     
     def getAudio(self):
         return self.__audio
     
-    def getProfanities(self):
-        return self.__profanities
+    def getClipDuration(self,end,start):
+        return float(end) - float(start)
+    
+    def runSubprocess(self,process):
+        while True:
+            data = process.stdout.read(4000)
+            if len(data) == 0:
+                break
     
     def split(self):
         pass
@@ -335,11 +338,132 @@ class ProfanityBlocker:
     def run(self, video, audio, profanities):
         self.setVideo(video)
         self.setAudio(audio)
-        self.setProfanities(profanities)
 
         clips = []
         videoduration = self.getVideo().getDuration()
         laststart = 0.0
+        fileExt = self.getVideo().getFileExtension()
+        fileLocation = self.getVideo().getFile()
+        
+        print("SPLIT")
+        for word in profanities:
+            print(word["word"])
+            wordduration = self.getClipDuration(word["start"],laststart)
+            profanityduration = self.getClipDuration(word["end"],word["start"])
 
-        for profanity in self.getProfanities():
-            pass
+            clipinfo = {}
+
+            if float(word["start"]) != float(laststart):
+
+                clipinfo = {
+                    "name":""+"not"+str(uuid.uuid4())+"."+fileExt,
+                    "isProfanity":False
+                }
+                txtnoprofanity = "ffmpeg -i {} -ss {} -t {} -c:v h264_nvenc {}"
+                txtnoprofanity = txtnoprofanity.format(fileLocation,laststart, wordduration,clipinfo["name"])
+                
+                vidprocess = subprocess.Popen(txtnoprofanity, stdout=subprocess.PIPE)
+                self.runSubprocess(vidprocess)
+
+                if os.path.exists(clipinfo["name"]):
+                    print(txtnoprofanity)
+                    clips.append(clipinfo)
+
+            clipinfo = {
+                "name":""+"profanity"+str(uuid.uuid4())+"."+fileExt,
+                "isProfanity":True
+            }
+            txtprofanity = "ffmpeg -i {} -ss {} -t {} -c:v h264_nvenc {}"
+            txtprofanity = txtprofanity.format(fileLocation,word["start"], profanityduration,clipinfo["name"])
+
+            vidprocess = subprocess.Popen(txtprofanity, stdout=subprocess.PIPE)
+            self.runSubprocess(vidprocess)
+
+            if os.path.exists(clipinfo["name"]):
+                print(txtprofanity)
+                clips.append(clipinfo)
+            laststart = float(word["end"])
+
+        if(float(laststart) != float(videoduration)):
+
+            clipinfo = {
+                "name":""+"last"+str(uuid.uuid4())+"."+fileExt,
+                "isProfanity":False
+            }
+            lastclip = "ffmpeg -i {} -ss {} -t {} -c:v h264_nvenc {}"
+            lastclip = lastclip.format(fileLocation,laststart, videoduration,clipinfo["name"])
+            
+            vidprocess = subprocess.Popen(lastclip, stdout=subprocess.PIPE)
+            self.runSubprocess(vidprocess)
+
+            print(lastclip)
+            clips.append(clipinfo)
+        
+        trashclips = clips.copy()
+
+        print("Replace")
+        audioFileLocation = self.getAudio().getFile()
+
+        for i in range(len(clips)):
+            clip=clips[i].copy()
+            if clip["isProfanity"]:
+                trashclips.append(clip)
+
+                #ready to be replace
+                replacename = ""+"replaced"+str(uuid.uuid4())+"."+fileExt
+                
+
+                txtreplaced = "ffmpeg -i {} -i {} -map 0:v -map 1:a -c:v copy -shortest {}"
+                txtreplaced = txtreplaced.format(clip["name"],audioFileLocation,replacename)
+                
+                vidprocess = subprocess.Popen(txtreplaced, stdout=subprocess.PIPE)
+                self.runSubprocess(vidprocess)
+
+                print(txtreplaced)
+                clip["name"] = replacename
+                clips[i] = clip
+        
+        print("Concat")
+        txtfilename = ""+"listofclips"+str(uuid.uuid4())+".txt"
+
+        for clip in clips:
+            f = open(txtfilename, "a")
+            f.write("file "+clip["name"]+"\n")
+            f.close()
+            print(clip["name"])
+                
+
+        #concat
+        print("\nFFMPEG CONCAT FINAL:----")
+
+        blockfilename = "blocked"+str(uuid.uuid4())+"."+fileExt
+        savefolder = ""
+
+        blockfilesavelocation = savefolder+blockfilename
+
+        txtconcat = "ffmpeg -safe 0 -f concat -i {} -c copy {}"
+
+        txtconcat = txtconcat.format(txtfilename,blockfilesavelocation)
+
+        vidprocess = subprocess.Popen(txtconcat, stdout=subprocess.PIPE)
+        self.runSubprocess(vidprocess)
+
+        print(txtconcat)
+        
+        f = open(txtfilename, "a")
+        f.write("\n\nDeleting Clips... \n\n")
+        f.close()
+
+        for trashclip in trashclips:
+            f = open(txtfilename, "a")
+            
+            if os.path.exists(trashclip["name"]):
+                os.remove(trashclip["name"])
+                f.write("deleted clip "+trashclip["name"]+"\n")
+            else:
+                f.write("not_deleted clip "+trashclip["name"]+"\n")
+            
+            f.close()
+
+        print("The profanities are now block")
+
