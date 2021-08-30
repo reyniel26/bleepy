@@ -148,10 +148,11 @@ class SpeechToText():
 
     def __init__(self, model = "model"):
         super().__init__()
-        self.__model = model
+        self.__model = ""
         self.__sample_rate=16000
         self.__video = VideoFile()
         self.__results = []
+        self.setModel(model)
 
         print("Setting up Recognizer for STT...")
         SetLogLevel(0)
