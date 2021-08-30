@@ -306,6 +306,8 @@ class ProfanityBlocker:
         self.__audio = AudioFile()
         self.__clips = []
         self.__trashclips = []
+        self.__clipsDirectory = ""
+        self.__saveDirectory = ""
     
     def setVideo(self, video):
         self.__video = video
@@ -319,6 +321,16 @@ class ProfanityBlocker:
     def setTrashClips(self,trashclips):
         self.__trashclips = trashclips
     
+    def setClipsDirectory(self,directory):
+        self.__clipsDirectory = self.validDir(directory)
+    
+    def setSaveDirectory(self,directory):
+        self.__saveDirectory = self.validDir(directory)
+    
+    def validDir(self,directory):
+        directory = directory.replace("\\","/")
+        return directory if "/" == directory[-1] or directory == "" else directory+"/"
+    
     def getVideo(self):
         return self.__video
     
@@ -330,6 +342,15 @@ class ProfanityBlocker:
     
     def getTrashClips(self):
         return self.__trashclips
+    
+    def getClipsDirectory(self):
+        return self.__clipsDirectory
+    
+    def getSaveDirectory(self):
+        return self.__saveDirectory
+    
+    def getClipDirForConcat(self):
+        return "../" * self.getClipsDirectory().count("/")
     
     def getClipDuration(self,end,start):
         return float(end) - float(start)
@@ -359,7 +380,7 @@ class ProfanityBlocker:
             if float(word["start"]) != float(laststart):
 
                 clipinfo = {
-                    "name":""+"not"+str(uuid.uuid4())+"."+fileExt,
+                    "name":self.getClipsDirectory()+"not"+str(uuid.uuid4())+"."+fileExt,
                     "isProfanity":False
                 }
 
@@ -375,7 +396,7 @@ class ProfanityBlocker:
                     clips.append(clipinfo)
 
             clipinfo = {
-                "name":""+"profanity"+str(uuid.uuid4())+"."+fileExt,
+                "name":self.getClipsDirectory()+"profanity"+str(uuid.uuid4())+"."+fileExt,
                 "isProfanity":True
             }
 
@@ -393,7 +414,7 @@ class ProfanityBlocker:
         if(float(laststart) != float(videoduration)):
 
             clipinfo = {
-                "name":""+"last"+str(uuid.uuid4())+"."+fileExt,
+                "name":self.getClipsDirectory()+"last"+str(uuid.uuid4())+"."+fileExt,
                 "isProfanity":False
             }
             lastclip = "ffmpeg -i {} -ss {} -t {} -c:v h264_nvenc {}"
@@ -424,9 +445,8 @@ class ProfanityBlocker:
                 trashclips.append(clip)
 
                 #ready to be replace
-                replacename = ""+"replaced"+str(uuid.uuid4())+"."+fileExt
+                replacename = self.getClipsDirectory()+"replaced"+str(uuid.uuid4())+"."+fileExt
                 
-
                 txtreplaced = "ffmpeg -i {} -i {} -map 0:v -map 1:a -c:v copy -shortest {}"
                 txtreplaced = txtreplaced.format(clip["name"],audioFileLocation,replacename)
                 
@@ -446,12 +466,12 @@ class ProfanityBlocker:
         trashclips = self.getTrashClips()
 
         print("Concat")
-        txtfilename = ""+"listofclips"+str(uuid.uuid4())+".txt"
+        txtfilename = self.getClipsDirectory()+"listofclips"+str(uuid.uuid4())+".txt"
 
         for clip in clips:
             try:
                 f = open(txtfilename, "a")
-                f.write("file "+clip["name"]+"\n")
+                f.write("file "+self.getClipDirForConcat()+clip["name"]+"\n")
             finally:
                 f.close()
                 print(clip["name"])
@@ -460,14 +480,11 @@ class ProfanityBlocker:
         #concat
         print("\nFFMPEG CONCAT FINAL:----")
 
-        blockfilename = "blocked"+str(uuid.uuid4())+"."+fileExt
-        savefolder = ""
-
-        blockfilesavelocation = savefolder+blockfilename
+        blockfilename = self.getSaveDirectory()+"blocked"+str(uuid.uuid4())+"."+fileExt
 
         txtconcat = "ffmpeg -safe 0 -f concat -i {} -c copy {}"
 
-        txtconcat = txtconcat.format(txtfilename,blockfilesavelocation)
+        txtconcat = txtconcat.format(txtfilename,blockfilename)
 
         vidprocess = subprocess.Popen(txtconcat, stdout=subprocess.PIPE)
         self.runSubprocess(vidprocess)
@@ -479,15 +496,16 @@ class ProfanityBlocker:
         f.close()
 
         for trashclip in trashclips:
-            f = open(txtfilename, "a")
-            
-            if os.path.exists(trashclip["name"]):
-                os.remove(trashclip["name"])
-                f.write("deleted clip "+trashclip["name"]+"\n")
-            else:
-                f.write("not_deleted clip "+trashclip["name"]+"\n")
-            
-            f.close()
+            try:
+                f = open(txtfilename, "a")
+                
+                if os.path.exists(trashclip["name"]):
+                    os.remove(trashclip["name"])
+                    f.write("deleted clip "+trashclip["name"]+"\n")
+                else:
+                    f.write("not_deleted clip "+trashclip["name"]+"\n")
+            finally:
+                f.close()
 
         print("The profanities are now block")
 

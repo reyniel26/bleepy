@@ -11,7 +11,6 @@ video.setFile( input("What video you want to block profanity? ") )
 audio.setFile( input("What bleep sound? ") )
 
 stt.run(video)
-print(len(stt.getResults()))
 extractor.run(stt.getResults())
 
 profanities = extractor.getProfanities()
