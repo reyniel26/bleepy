@@ -304,6 +304,8 @@ class ProfanityBlocker:
     def __init__(self):
         self.__video = VideoFile()
         self.__audio = AudioFile()
+        self.__clips = []
+        self.__trashclips = []
     
     def setVideo(self, video):
         self.__video = video
@@ -311,11 +313,23 @@ class ProfanityBlocker:
     def setAudio(self, audio):
         self.__audio = audio
     
+    def setClips(self, clips):
+        self.__clips = clips
+    
+    def setTrashClips(self,trashclips):
+        self.__trashclips = trashclips
+    
     def getVideo(self):
         return self.__video
     
     def getAudio(self):
         return self.__audio
+    
+    def getClips(self):
+        return self.__clips
+    
+    def getTrashClips(self):
+        return self.__trashclips
     
     def getClipDuration(self,end,start):
         return float(end) - float(start)
@@ -326,25 +340,14 @@ class ProfanityBlocker:
             if len(data) == 0:
                 break
     
-    def split(self):
-        pass
+    def split(self,profanities):
+        clips = self.getClips()
 
-    def replace(self):
-        pass
-
-    def concat(self):
-        pass
-    
-    def run(self, video, audio, profanities):
-        self.setVideo(video)
-        self.setAudio(audio)
-
-        clips = []
         videoduration = self.getVideo().getDuration()
-        laststart = 0.0
         fileExt = self.getVideo().getFileExtension()
         fileLocation = self.getVideo().getFile()
-        
+
+        laststart = 0.0
         print("SPLIT")
         for word in profanities:
             print(word["word"])
@@ -359,10 +362,12 @@ class ProfanityBlocker:
                     "name":""+"not"+str(uuid.uuid4())+"."+fileExt,
                     "isProfanity":False
                 }
+
                 txtnoprofanity = "ffmpeg -i {} -ss {} -t {} -c:v h264_nvenc {}"
                 txtnoprofanity = txtnoprofanity.format(fileLocation,laststart, wordduration,clipinfo["name"])
                 
                 vidprocess = subprocess.Popen(txtnoprofanity, stdout=subprocess.PIPE)
+
                 self.runSubprocess(vidprocess)
 
                 if os.path.exists(clipinfo["name"]):
@@ -373,6 +378,7 @@ class ProfanityBlocker:
                 "name":""+"profanity"+str(uuid.uuid4())+"."+fileExt,
                 "isProfanity":True
             }
+
             txtprofanity = "ffmpeg -i {} -ss {} -t {} -c:v h264_nvenc {}"
             txtprofanity = txtprofanity.format(fileLocation,word["start"], profanityduration,clipinfo["name"])
 
@@ -399,7 +405,15 @@ class ProfanityBlocker:
             print(lastclip)
             clips.append(clipinfo)
         
-        trashclips = clips.copy()
+        self.setClips(clips)
+        self.setTrashClips(self.getClips().copy())
+
+    def replace(self):
+        fileExt = self.getVideo().getFileExtension()
+
+        # trashclips = clips.copy()
+        clips = self.getClips()
+        trashclips = self.getTrashClips()
 
         print("Replace")
         audioFileLocation = self.getAudio().getFile()
@@ -423,14 +437,24 @@ class ProfanityBlocker:
                 clip["name"] = replacename
                 clips[i] = clip
         
+        self.setClips(clips)
+        self.setTrashClips(trashclips)
+
+    def concat(self):
+        fileExt = self.getVideo().getFileExtension()
+        clips = self.getClips()
+        trashclips = self.getTrashClips()
+
         print("Concat")
         txtfilename = ""+"listofclips"+str(uuid.uuid4())+".txt"
 
         for clip in clips:
-            f = open(txtfilename, "a")
-            f.write("file "+clip["name"]+"\n")
-            f.close()
-            print(clip["name"])
+            try:
+                f = open(txtfilename, "a")
+                f.write("file "+clip["name"]+"\n")
+            finally:
+                f.close()
+                print(clip["name"])
                 
 
         #concat
@@ -467,3 +491,12 @@ class ProfanityBlocker:
 
         print("The profanities are now block")
 
+    def run(self, video, audio, profanities):
+        self.setVideo(video)
+        self.setAudio(audio)
+
+        self.split(profanities)
+        self.replace()
+        self.concat()
+
+        
