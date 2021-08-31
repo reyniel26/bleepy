@@ -419,7 +419,7 @@ class ProfanityBlocker:
                 "isProfanity":False
             }
             lastclip = "ffmpeg -i \"{}\" -ss {} -t {} -c:v h264_nvenc {}"
-            lastclip = lastclip.format(fileLocation,laststart, videoduration,clipinfo["name"])
+            lastclip = lastclip.format(fileLocation,laststart, (videoduration-laststart),clipinfo["name"])
             
             vidprocess = subprocess.Popen(lastclip, stdout=subprocess.PIPE)
             self.runSubprocess(vidprocess)
