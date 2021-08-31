@@ -483,7 +483,7 @@ class ProfanityBlocker:
 
         blockfilename = self.getSaveDirectory()+"blocked"+str(uuid.uuid4())+"."+fileExt
 
-        txtconcat = "ffmpeg -safe 0 -f concat -i {} -c copy {}"
+        txtconcat = "ffmpeg -safe 0 -f concat -segment_time_metadata 1 -i {} -vf select=concatdec_select -af aselect=concatdec_select,aresample=async=1 {}"
 
         txtconcat = txtconcat.format(txtfilename,blockfilename)
 
