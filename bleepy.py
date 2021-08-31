@@ -148,11 +148,11 @@ class SpeechToText():
 
     def __init__(self, model = "model"):
         super().__init__()
-        self.__model = ""
+        self.checkModelExist(model)
+        self.__model = model
         self.__sample_rate=16000
         self.__video = VideoFile()
         self.__results = []
-        self.setModel(model)
 
         print("Setting up Recognizer for STT...")
         SetLogLevel(0)
@@ -385,7 +385,7 @@ class ProfanityBlocker:
                     "isProfanity":False
                 }
 
-                txtnoprofanity = "ffmpeg -i {} -ss {} -t {} -c:v h264_nvenc {}"
+                txtnoprofanity = "ffmpeg -i \"{}\" -ss {} -t {} -c:v h264_nvenc {}"
                 txtnoprofanity = txtnoprofanity.format(fileLocation,laststart, wordduration,clipinfo["name"])
                 
                 vidprocess = subprocess.Popen(txtnoprofanity, stdout=subprocess.PIPE)
@@ -401,7 +401,7 @@ class ProfanityBlocker:
                 "isProfanity":True
             }
 
-            txtprofanity = "ffmpeg -i {} -ss {} -t {} -c:v h264_nvenc {}"
+            txtprofanity = "ffmpeg -i \"{}\" -ss {} -t {} -c:v h264_nvenc {}"
             txtprofanity = txtprofanity.format(fileLocation,word["start"], profanityduration,clipinfo["name"])
 
             vidprocess = subprocess.Popen(txtprofanity, stdout=subprocess.PIPE)
@@ -418,7 +418,7 @@ class ProfanityBlocker:
                 "name":self.getClipsDirectory()+"last"+str(uuid.uuid4())+"."+fileExt,
                 "isProfanity":False
             }
-            lastclip = "ffmpeg -i {} -ss {} -t {} -c:v h264_nvenc {}"
+            lastclip = "ffmpeg -i \"{}\" -ss {} -t {} -c:v h264_nvenc {}"
             lastclip = lastclip.format(fileLocation,laststart, videoduration,clipinfo["name"])
             
             vidprocess = subprocess.Popen(lastclip, stdout=subprocess.PIPE)
@@ -448,7 +448,7 @@ class ProfanityBlocker:
                 #ready to be replace
                 replacename = self.getClipsDirectory()+"replaced"+str(uuid.uuid4())+"."+fileExt
                 
-                txtreplaced = "ffmpeg -i {} -i {} -map 0:v -map 1:a -c:v copy -shortest {}"
+                txtreplaced = "ffmpeg -i {} -i \"{}\" -map 0:v -map 1:a -c:v copy -shortest {}"
                 txtreplaced = txtreplaced.format(clip["name"],audioFileLocation,replacename)
                 
                 vidprocess = subprocess.Popen(txtreplaced, stdout=subprocess.PIPE)
