@@ -148,11 +148,11 @@ class SpeechToText():
 
     def __init__(self, model = "model"):
         super().__init__()
-        self.__model = ""
+        self.checkModelExist(model)
+        self.__model = model
         self.__sample_rate=16000
         self.__video = VideoFile()
         self.__results = []
-        self.setModel(model)
 
         print("Setting up Recognizer for STT...")
         SetLogLevel(0)
@@ -483,7 +483,7 @@ class ProfanityBlocker:
 
         blockfilename = self.getSaveDirectory()+"blocked"+str(uuid.uuid4())+"."+fileExt
 
-        txtconcat = "ffmpeg -safe 0 -f concat -segment_time_metadata 1 -i {} -vf select=concatdec_select -af aselect=concatdec_select,aresample=async=1 {}"
+        txtconcat = "ffmpeg -safe 0 -f concat -segment_time_metadata 1 -i {} -vf select=concatdec_select -af aselect=concatdec_select,aresample=44100 {}"
 
         txtconcat = txtconcat.format(txtfilename,blockfilename)
 
