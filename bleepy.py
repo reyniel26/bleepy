@@ -10,6 +10,7 @@ import uuid #create unique random id
 class File:
     def __init__(self):
         self.__file = "NaN"
+        self.__filesize = 0.0
     
     def __setFileIfNull(self, file):
         #Private Method that set file default file if null and doesnt alter the file set in the class
@@ -24,10 +25,17 @@ class File:
     def setFile(self, file):
         #Set File
         self.__file = self.__safeSetFile(file)
+        self.__setFileSize(file)
+    
+    def __setFileSize(self,file):
+        self.__filesize = os.path.getsize(file)
     
     def getFile(self):
         #Return File
         return self.__file
+    
+    def getFileSize(self):
+        return self.__filesize
     
     def isFileExist(self, file = ""):
         #Return boolean , if file exist
