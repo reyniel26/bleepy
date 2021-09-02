@@ -225,6 +225,7 @@ class SpeechToText():
 
     def run(self, video):
         self.setVideo(video)
+        self.setResults([])
         self.checkModelExist()
         rec = self.getRecognizer()
 
