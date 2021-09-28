@@ -318,6 +318,7 @@ class ProfanityBlocker:
         self.__trashclips = []
         self.__clipsDirectory = ""
         self.__saveDirectory = ""
+        self.__filelocation = ""
     
     def setVideo(self, video):
         self.__video = video
@@ -336,6 +337,9 @@ class ProfanityBlocker:
     
     def setSaveDirectory(self,directory):
         self.__saveDirectory = self.validDir(directory)
+    
+    def setFileLocation(self,filelocation):
+        self.__filelocation = filelocation
     
     def validDir(self,directory):
         directory = directory.replace("\\","/")
@@ -358,6 +362,9 @@ class ProfanityBlocker:
     
     def getSaveDirectory(self):
         return self.__saveDirectory
+    
+    def getFileLocation(self):
+        return self.__filelocation
     
     def getClipDirForConcat(self):
         return "../" * self.getClipsDirectory().count("/")
@@ -517,10 +524,16 @@ class ProfanityBlocker:
             finally:
                 f.close()
 
+        try:
+            f = open(txtfilename, "a")
+            f.write("\n\nThe Bleeped file saved in: "+blockfilename)
+        finally:
+            f.close()
+        
+        self.setFileLocation(blockfilename)
         print("The profanities are now block")
-        print("Save directory: "+str(blockfilename))
 
-    def run(self, video, audio, profanities):
+    def run(self, video:VideoFile, audio:AudioFile, profanities:list):
         self.setVideo(video)
         self.setAudio(audio)
 
