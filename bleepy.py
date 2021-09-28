@@ -518,6 +518,7 @@ class ProfanityBlocker:
                 f.close()
 
         print("The profanities are now block")
+        print("Save directory: "+str(blockfilename))
 
     def run(self, video, audio, profanities):
         self.setVideo(video)
