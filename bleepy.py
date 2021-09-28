@@ -110,7 +110,7 @@ class MediaFile(File):
     
     def isFileAllowed(self,file):
         #Override
-        return super().isFileAllowed() and self.isAllowedExt(self.getExtension(file))
+        return super().isFileAllowed(file) and self.isAllowedExt(self.getExtension(file))
     
     def checkIsFileAllowed(self, file):
         #Override
