@@ -389,10 +389,10 @@ class ProfanityBlocker:
         print("SPLIT")
         for word in profanities:
             print(word["word"])
-            word["start"] = round(float(word["start"]),3)
-            word["end"] = round(float(word["end"]),3)
-            wordduration = round(self.getClipDuration(word["start"],laststart),3)
-            profanityduration = round(self.getClipDuration(word["end"],word["start"]),3)
+            word["start"] = round(float(word["start"]),2)
+            word["end"] = round(float(word["end"]),2)
+            wordduration = round(self.getClipDuration(word["start"],laststart),2)
+            profanityduration = round(self.getClipDuration(word["end"],word["start"]),2)
 
             clipinfo = {}
 
@@ -424,12 +424,12 @@ class ProfanityBlocker:
             templaststart = float(word["end"])
             if (videoduration - templaststart) < 1:
                 #If the last clip is not long enough, it will be attach already from the previous clip
-                duration = round(profanityduration+(videoduration - templaststart),3)
+                duration = round(profanityduration+(videoduration - templaststart),2)
                 txtprofanity = txtprofanity.format(fileLocation,word["start"], duration,clipinfo["name"])
                 laststart = videoduration
             elif wordduration < 1:
                 #If the no profanity clip is less than 1
-                duration = round(profanityduration+wordduration,3)
+                duration = round(profanityduration+wordduration,2)
                 txtprofanity = txtprofanity.format(fileLocation,laststart, duration,clipinfo["name"])
                 laststart = float(word["end"])
             else:
@@ -451,7 +451,7 @@ class ProfanityBlocker:
                 "isProfanity":False
             }
             lastclip = "ffmpeg -i \"{}\" -ss {} -t {} -c:v h264_nvenc {}"
-            duration = round((videoduration-laststart),3)
+            duration = round((videoduration-laststart),2)
             lastclip = lastclip.format(fileLocation,laststart, duration,clipinfo["name"])
             
             vidprocess = subprocess.Popen(lastclip, stdout=subprocess.PIPE)
