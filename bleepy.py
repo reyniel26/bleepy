@@ -246,7 +246,13 @@ class SpeechToText():
         print(result)
         self.addResult(finalresult)
 
-class ProfanityDetector:
+class ProfanityDetector():
+
+    def __init__(self,lang="english"):
+        self.__lang = lang
+    
+    def getLang(self):
+        return self.__lang
 
     def extractListOfResults(self,txt): 
         #Make List of Results
@@ -279,15 +285,16 @@ class ProfanityDetector:
         words = self.extractListOfWords(txt)
         profanity = []
         for word in words:
-            if bool(predict([word["word"]])):
+            if bool( predict([word["word"]]) if self.getLang() == "english" else predict([word["word"]], self.getLang()) ):
                 profanity.append(word)
         return profanity #list of dictionaries 
 
 class ProfanityExtractor():
     # New Process
     # Profanity Extractor should only extract profanity from the list of text results return by STT
-    def __init__(self):
+    def __init__(self, lang="english"):
         self.__profanities = []
+        self.__lang = lang
     
     def setProfanities(self,profanities):
         self.__profanities = profanities
@@ -295,6 +302,9 @@ class ProfanityExtractor():
     def getProfanities(self):
         return self.__profanities
     
+    def getLang(self):
+        return self.__lang
+
     def addProfanity(self, newprofanity):
         profanities = self.getProfanities()
         profanities.append(newprofanity)
@@ -306,7 +316,7 @@ class ProfanityExtractor():
         self.setProfanities(profanities)
      
     def run(self,results):
-        profanityDetector = ProfanityDetector()
+        profanityDetector = ProfanityDetector(self.getLang())
         for result in results:
             self.extendProfanities(profanityDetector.extractListOfProfanity(result))
 
