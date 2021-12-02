@@ -243,7 +243,7 @@ class SpeechToText():
                 print(rec.PartialResult())
 
         finalresult = rec.FinalResult()
-        print(result)
+        print(finalresult)
         self.addResult(finalresult)
 
 class ProfanityDetector():
