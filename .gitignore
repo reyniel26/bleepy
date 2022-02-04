@@ -1,6 +1,7 @@
 #Ignore this files
 __pycache__/
 model/
+model-ph/
 bleepy-test-files/
 
 test.py

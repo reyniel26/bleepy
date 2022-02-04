@@ -243,10 +243,16 @@ class SpeechToText():
                 print(rec.PartialResult())
 
         finalresult = rec.FinalResult()
-        print(result)
+        print(finalresult)
         self.addResult(finalresult)
 
-class ProfanityDetector:
+class ProfanityDetector():
+
+    def __init__(self,lang="english"):
+        self.__lang = lang
+    
+    def getLang(self):
+        return self.__lang
 
     def extractListOfResults(self,txt): 
         #Make List of Results
@@ -279,15 +285,17 @@ class ProfanityDetector:
         words = self.extractListOfWords(txt)
         profanity = []
         for word in words:
-            if bool(predict([word["word"]])):
+            if bool( predict([word["word"]]) if self.getLang() == "english" else predict([word["word"]], self.getLang()) ):
+                word["lang"] = self.getLang()
                 profanity.append(word)
         return profanity #list of dictionaries 
 
 class ProfanityExtractor():
     # New Process
     # Profanity Extractor should only extract profanity from the list of text results return by STT
-    def __init__(self):
+    def __init__(self, lang="english"):
         self.__profanities = []
+        self.__lang = lang
     
     def setProfanities(self,profanities):
         self.__profanities = profanities
@@ -295,6 +303,9 @@ class ProfanityExtractor():
     def getProfanities(self):
         return self.__profanities
     
+    def getLang(self):
+        return self.__lang
+
     def addProfanity(self, newprofanity):
         profanities = self.getProfanities()
         profanities.append(newprofanity)
@@ -306,7 +317,7 @@ class ProfanityExtractor():
         self.setProfanities(profanities)
      
     def run(self,results):
-        profanityDetector = ProfanityDetector()
+        profanityDetector = ProfanityDetector(self.getLang())
         for result in results:
             self.extendProfanities(profanityDetector.extractListOfProfanity(result))
 
@@ -389,28 +400,30 @@ class ProfanityBlocker:
         print("SPLIT")
         for word in profanities:
             print(word["word"])
-            wordduration = self.getClipDuration(word["start"],laststart)
-            profanityduration = self.getClipDuration(word["end"],word["start"])
+            word["start"] = round(float(word["start"]),2)
+            word["end"] = round(float(word["end"]),2)
+            wordduration = round(self.getClipDuration(word["start"],laststart),2)
+            profanityduration = round(self.getClipDuration(word["end"],word["start"]),2)
 
             clipinfo = {}
 
             if float(word["start"]) != float(laststart):
+                if wordduration > 1:
+                    clipinfo = {
+                        "name":self.getClipsDirectory()+"not"+str(uuid.uuid4())+"."+fileExt,
+                        "isProfanity":False
+                    }
 
-                clipinfo = {
-                    "name":self.getClipsDirectory()+"not"+str(uuid.uuid4())+"."+fileExt,
-                    "isProfanity":False
-                }
+                    txtnoprofanity = "ffmpeg -i \"{}\" -ss {} -t {} -c:v h264_nvenc {}"
+                    txtnoprofanity = txtnoprofanity.format(fileLocation,laststart, wordduration,clipinfo["name"])
+                    
+                    vidprocess = subprocess.Popen(txtnoprofanity, stdout=subprocess.PIPE)
 
-                txtnoprofanity = "ffmpeg -i \"{}\" -ss {} -t {} -c:v h264_nvenc {}"
-                txtnoprofanity = txtnoprofanity.format(fileLocation,laststart, wordduration,clipinfo["name"])
-                
-                vidprocess = subprocess.Popen(txtnoprofanity, stdout=subprocess.PIPE)
+                    self.runSubprocess(vidprocess)
 
-                self.runSubprocess(vidprocess)
-
-                if os.path.exists(clipinfo["name"]):
-                    print(txtnoprofanity)
-                    clips.append(clipinfo)
+                    if os.path.exists(clipinfo["name"]):
+                        print(txtnoprofanity)
+                        clips.append(clipinfo)
 
             clipinfo = {
                 "name":self.getClipsDirectory()+"profanity"+str(uuid.uuid4())+"."+fileExt,
@@ -418,7 +431,21 @@ class ProfanityBlocker:
             }
 
             txtprofanity = "ffmpeg -i \"{}\" -ss {} -t {} -c:v h264_nvenc {}"
-            txtprofanity = txtprofanity.format(fileLocation,word["start"], profanityduration,clipinfo["name"])
+            
+            templaststart = float(word["end"])
+            if (videoduration - templaststart) < 1:
+                #If the last clip is not long enough, it will be attach already from the previous clip
+                duration = round(profanityduration+(videoduration - templaststart),2)
+                txtprofanity = txtprofanity.format(fileLocation,word["start"], duration,clipinfo["name"])
+                laststart = videoduration
+            elif wordduration < 1:
+                #If the no profanity clip is less than 1
+                duration = round(profanityduration+wordduration,2)
+                txtprofanity = txtprofanity.format(fileLocation,laststart, duration,clipinfo["name"])
+                laststart = float(word["end"])
+            else:
+                txtprofanity = txtprofanity.format(fileLocation,word["start"], profanityduration,clipinfo["name"])
+                laststart = float(word["end"])
 
             vidprocess = subprocess.Popen(txtprofanity, stdout=subprocess.PIPE)
             self.runSubprocess(vidprocess)
@@ -426,7 +453,7 @@ class ProfanityBlocker:
             if os.path.exists(clipinfo["name"]):
                 print(txtprofanity)
                 clips.append(clipinfo)
-            laststart = float(word["end"])
+            
 
         if(float(laststart) != float(videoduration)):
 
@@ -435,13 +462,15 @@ class ProfanityBlocker:
                 "isProfanity":False
             }
             lastclip = "ffmpeg -i \"{}\" -ss {} -t {} -c:v h264_nvenc {}"
-            lastclip = lastclip.format(fileLocation,laststart, (videoduration-laststart),clipinfo["name"])
+            duration = round((videoduration-laststart),2)
+            lastclip = lastclip.format(fileLocation,laststart, duration,clipinfo["name"])
             
             vidprocess = subprocess.Popen(lastclip, stdout=subprocess.PIPE)
             self.runSubprocess(vidprocess)
 
-            print(lastclip)
-            clips.append(clipinfo)
+            if os.path.exists(clipinfo["name"]):
+                print(lastclip)
+                clips.append(clipinfo)
         
         self.setClips(clips)
         self.setTrashClips(self.getClips().copy())
