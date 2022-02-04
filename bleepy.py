@@ -287,6 +287,7 @@ class ProfanityDetector():
         for word in words:
             if bool( predict([word["word"]]) if self.getLang() == "english" else predict([word["word"]], self.getLang()) ):
                 word["lang"] = self.getLang()
+                word["predict_prob"] = predict_prob([word["word"]])[0] if self.getLang() == "english" else predict_prob([word["word"]], self.getLang())[0]
                 profanity.append(word)
         return profanity #list of dictionaries 
 
