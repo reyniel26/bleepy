@@ -1,21 +1,22 @@
-from vosk import Model, KaldiRecognizer, SetLogLevel
 import os
-import sys
-import wave
 import subprocess
+import sys
+import uuid  # create unique random id
+import wave
 
 from profanity_check import predict, predict_prob
-import uuid #create unique random id
+from vosk import KaldiRecognizer, Model, SetLogLevel
+
 
 class File:
     def __init__(self):
         self.__file = "NaN"
         self.__filesize = 0.0
-    
+
     def __setFileIfNull(self, file):
         #Private Method that set file default file if null and doesnt alter the file set in the class
         return self.getFile() if file == "" else file
-     
+
     def __safeSetFile(self,file):
         #Private Method use to safe set file, doenst alter the file directly
         file = self.__setFileIfNull(file)
@@ -26,21 +27,21 @@ class File:
         #Set File
         self.__file = self.__safeSetFile(file)
         self.__setFileSize(file)
-    
+
     def __setFileSize(self,file):
         self.__filesize = os.path.getsize(file)
-    
+
     def getFile(self):
         #Return File
         return self.__file
-    
+
     def getFileSize(self):
         return self.__filesize
-    
+
     def isFileExist(self, file = ""):
         #Return boolean , if file exist
         return os.path.exists(self.__setFileIfNull(file))
-     
+
     def checkIsFileExist(self, file):
         #Check file exist, if not, print error
         if not self.isFileExist(file):
@@ -52,7 +53,7 @@ class File:
 
     def checkIsFileAllowed(self, file):
         self.checkIsFileExist(file)
-    
+
 class MediaFile(File):
     #Abstraction for MediaFile
     def __init__(self):
@@ -60,20 +61,20 @@ class MediaFile(File):
         self.__allowedExtensions = {"mp4","mp3"}
         self.__extension = ""
         self.__duration = 0.0
-    
+
     def setFile(self, file):
         #Set File , Override
         super().setFile(file)
         self.__setFileExtension(file)
         self.__setDuration(file)
-    
+
     def setAllowedExts(self, extensions):
         self.__allowedExtensions = extensions
 
     def __setFileExtension(self, file):
         #Return File Extension
         self.__extension = self.getExtension(file)
-    
+
     def __setDuration(self, file):
         #Return Full Duration of the Media File
         # #durationcmd = 'ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"'+file+'\"'
@@ -82,7 +83,7 @@ class MediaFile(File):
         output = proc.stdout.read()
         output = str(output).replace("\\","")
         for x in ("b","\'","n","r"):
-            output = output.strip(x) 
+            output = output.strip(x)
         self.__duration = float(output)
 
     def getAllowedExts(self):
@@ -96,22 +97,22 @@ class MediaFile(File):
 
     def getDuration(self):
         return self.__duration
-    
+
     def isAllowedExt(self, extension):
         return extension in self.getAllowedExts()
-    
+
     def checkIsAllowedExt(self, extension):
         #Check file extension, if not, print error
         if not self.isAllowedExt(extension):
             print ("Warning: File Extension ("+extension+") is not allowed. Please input valid file type "
-                    + str(self.getAllowedExts()) 
+                    + str(self.getAllowedExts())
                     + " or add extensions by using \'addAllowedExt(str)\' or \'updateAllowedExt(list)\' " )
             exit (1)
-    
+
     def isFileAllowed(self,file):
         #Override
         return super().isFileAllowed(file) and self.isAllowedExt(self.getExtension(file))
-    
+
     def checkIsFileAllowed(self, file):
         #Override
         super().checkIsFileAllowed(file)
@@ -123,7 +124,7 @@ class MediaFile(File):
         if extension not in exts:
             exts.add(extension)
             self.setAllowedExts(exts)
-    
+
     def updateAllowedExt(self,extensions):
         #add list allowed extension
         exts = self.getAllowedExts()
@@ -167,22 +168,22 @@ class SpeechToText():
         model = Model(self.getModel())
         self.__recognizer = KaldiRecognizer(model, self.getSampleRate())
         self.__recognizer.SetWords(True)
-  
+
     def setModel(self, model="model"):
         self.checkModelExist(model)
         self.__model = model
         self.updateRecognizer()
-    
+
     def setSampleRate(self, sample_rate = 16000):
         self.__sample_rate = sample_rate
         self.updateRecognizer()
-    
+
     def setVideo(self,video):
         self.__video = video
-    
+
     def setResults(self,results):
         self.__results = results
-    
+
     def addResult(self,newresult):
         results = self.getResults()
         results.append(newresult)
@@ -194,30 +195,30 @@ class SpeechToText():
         model = Model(self.getModel())
         self.__recognizer = KaldiRecognizer(model, self.getSampleRate())
         self.__recognizer.SetWords(True)
-        
+
     def getModel(self):
         return self.__model
-    
+
     def getVideo(self):
         return self.__video
-    
+
     def getSampleRate(self):
         return self.__sample_rate
-    
+
     def getResults(self):
         return self.__results
 
     def getRecognizer(self):
         return self.__recognizer
-    
+
     def getSttCmd(self):
         #Return FMMPEG Command for STT
         return ['ffmpeg', '-loglevel', 'quiet', '-i',self.getVideo().getFile(), '-ar', str(self.getSampleRate()) , '-ac', '1', '-f', 's16le', '-']
-    
+
     def isModelExist(self, model = ""):
         model = self.getModel() if model == "" else model
         return os.path.exists(model)
-    
+
     def checkModelExist(self, model = ""):
         if not self.isModelExist(model):
             print ("Warning: Model Directory not found ("+model+"). Please download the model from https://alphacephei.com/vosk/models and unpack as 'model' in the current folder.")
@@ -250,11 +251,11 @@ class ProfanityDetector():
 
     def __init__(self,lang="english"):
         self.__lang = lang
-    
+
     def getLang(self):
         return self.__lang
 
-    def extractListOfResults(self,txt): 
+    def extractListOfResults(self,txt):
         #Make List of Results
         #Vosk, KaldiRecognizer obj.Result() and obj.FinalResult() return txt
         a = txt.split('[')#Split the Result str in open bracket
@@ -266,7 +267,7 @@ class ProfanityDetector():
             c[i] = c[i].replace('\"','') #replace "
         return c #return list of Results
 
-    def extractListOfWords(self,txt): 
+    def extractListOfWords(self,txt):
         #Make List of Words, extracted from the list of Results
         words = [] #create new list
         if "result" in txt: #Check if there is result or words
@@ -289,7 +290,7 @@ class ProfanityDetector():
                 word["lang"] = self.getLang()
                 word["predict_prob"] = predict_prob([word["word"]])[0] if self.getLang() == "english" else predict_prob([word["word"]], self.getLang())[0]
                 profanity.append(word)
-        return profanity #list of dictionaries 
+        return profanity #list of dictionaries
 
 class ProfanityExtractor():
     # New Process
@@ -297,13 +298,13 @@ class ProfanityExtractor():
     def __init__(self, lang="english"):
         self.__profanities = []
         self.__lang = lang
-    
+
     def setProfanities(self,profanities):
         self.__profanities = profanities
-    
+
     def getProfanities(self):
         return self.__profanities
-    
+
     def getLang(self):
         return self.__lang
 
@@ -311,12 +312,12 @@ class ProfanityExtractor():
         profanities = self.getProfanities()
         profanities.append(newprofanity)
         self.setProfanities(profanities)
-    
+
     def extendProfanities(self, newprofanities):
         profanities = self.getProfanities()
         profanities.extend(newprofanities)
         self.setProfanities(profanities)
-     
+
     def run(self,results):
         profanityDetector = ProfanityDetector(self.getLang())
         for result in results:
@@ -331,65 +332,72 @@ class ProfanityBlocker:
         self.__clipsDirectory = ""
         self.__saveDirectory = ""
         self.__filelocation = ""
-    
+
     def setVideo(self, video):
         self.__video = video
-    
+
     def setAudio(self, audio):
         self.__audio = audio
-    
+
     def setClips(self, clips):
         self.__clips = clips
-    
+
     def setTrashClips(self,trashclips):
         self.__trashclips = trashclips
-    
+
     def setClipsDirectory(self,directory):
-        self.__clipsDirectory = self.validDir(directory)
-    
+        """Set clips directory name, if not exist, create it"""
+        self.__clipsDirectory = self.decorate_dir_name(directory)
+        if not os.path.exists(self.__clipsDirectory):
+            os.makedirs(self.__clipsDirectory)
+
     def setSaveDirectory(self,directory):
-        self.__saveDirectory = self.validDir(directory)
-    
+        """Set save directory name, if not exist, create it"""
+        self.__saveDirectory = self.decorate_dir_name(directory)
+        if not os.path.exists(self.__saveDirectory):
+            os.makedirs(self.__saveDirectory)
+
     def setFileLocation(self,filelocation):
         self.__filelocation = filelocation
-    
-    def validDir(self,directory):
+
+    def decorate_dir_name(self,directory):
+        """Decorate directory name """
         directory = directory.replace("\\","/")
         return directory if "/" == directory[-1] or directory == "" else directory+"/"
-    
+
     def getVideo(self):
         return self.__video
-    
+
     def getAudio(self):
         return self.__audio
-    
+
     def getClips(self):
         return self.__clips
-    
+
     def getTrashClips(self):
         return self.__trashclips
-    
+
     def getClipsDirectory(self):
         return self.__clipsDirectory
-    
+
     def getSaveDirectory(self):
         return self.__saveDirectory
-    
+
     def getFileLocation(self):
         return self.__filelocation
-    
+
     def getClipDirForConcat(self):
         return "../" * self.getClipsDirectory().count("/")
-    
+
     def getClipDuration(self,end,start):
         return float(end) - float(start)
-    
+
     def runSubprocess(self,process):
         while True:
             data = process.stdout.read(4000)
             if len(data) == 0:
                 break
-    
+
     def split(self,profanities):
         clips = self.getClips()
 
@@ -411,13 +419,14 @@ class ProfanityBlocker:
             if float(word["start"]) != float(laststart):
                 if wordduration > 1:
                     clipinfo = {
-                        "name":self.getClipsDirectory()+"not"+str(uuid.uuid4())+"."+fileExt,
+                        # "name":self.getClipsDirectory()+"not"+str(uuid.uuid4())+"."+fileExt,
+                        "name":f"{self.getClipsDirectory()}not{uuid.uuid4()}.{fileExt}",
                         "isProfanity":False
                     }
 
                     txtnoprofanity = "ffmpeg -i \"{}\" -ss {} -t {} -c:v h264_nvenc {}"
                     txtnoprofanity = txtnoprofanity.format(fileLocation,laststart, wordduration,clipinfo["name"])
-                    
+
                     vidprocess = subprocess.Popen(txtnoprofanity, stdout=subprocess.PIPE)
 
                     self.runSubprocess(vidprocess)
@@ -427,12 +436,13 @@ class ProfanityBlocker:
                         clips.append(clipinfo)
 
             clipinfo = {
-                "name":self.getClipsDirectory()+"profanity"+str(uuid.uuid4())+"."+fileExt,
+                # "name":self.getClipsDirectory()+"profanity"+str(uuid.uuid4())+"."+fileExt,
+                "name":f"{self.getClipsDirectory()}profanity{uuid.uuid4()}.{fileExt}",
                 "isProfanity":True
             }
 
             txtprofanity = "ffmpeg -i \"{}\" -ss {} -t {} -c:v h264_nvenc {}"
-            
+
             templaststart = float(word["end"])
             if (videoduration - templaststart) < 1:
                 #If the last clip is not long enough, it will be attach already from the previous clip
@@ -454,7 +464,7 @@ class ProfanityBlocker:
             if os.path.exists(clipinfo["name"]):
                 print(txtprofanity)
                 clips.append(clipinfo)
-            
+
 
         if(float(laststart) != float(videoduration)):
 
@@ -465,14 +475,14 @@ class ProfanityBlocker:
             lastclip = "ffmpeg -i \"{}\" -ss {} -t {} -c:v h264_nvenc {}"
             duration = round((videoduration-laststart),2)
             lastclip = lastclip.format(fileLocation,laststart, duration,clipinfo["name"])
-            
+
             vidprocess = subprocess.Popen(lastclip, stdout=subprocess.PIPE)
             self.runSubprocess(vidprocess)
 
             if os.path.exists(clipinfo["name"]):
                 print(lastclip)
                 clips.append(clipinfo)
-        
+
         self.setClips(clips)
         self.setTrashClips(self.getClips().copy())
 
@@ -493,17 +503,17 @@ class ProfanityBlocker:
 
                 #ready to be replace
                 replacename = self.getClipsDirectory()+"replaced"+str(uuid.uuid4())+"."+fileExt
-                
+
                 txtreplaced = "ffmpeg -i {} -i \"{}\" -map 0:v -map 1:a -c:v copy -shortest {}"
                 txtreplaced = txtreplaced.format(clip["name"],audioFileLocation,replacename)
-                
+
                 vidprocess = subprocess.Popen(txtreplaced, stdout=subprocess.PIPE)
                 self.runSubprocess(vidprocess)
 
                 print(txtreplaced)
                 clip["name"] = replacename
                 clips[i] = clip
-        
+
         self.setClips(clips)
         self.setTrashClips(trashclips)
 
@@ -522,14 +532,14 @@ class ProfanityBlocker:
             finally:
                 f.close()
                 print(clip["name"])
-                
+
 
         #concat
         print("\nFFMPEG CONCAT FINAL:----")
 
         blockfilename = self.getSaveDirectory()+"blocked"+str(uuid.uuid4())+"."+fileExt
 
-        txtconcat = "ffmpeg -safe 0 -f concat -i {} -c copy {}"
+        txtconcat = "ffmpeg -safe 0 -f concat -i \"{}\" -c copy \"{}\""
 
         txtconcat = txtconcat.format(txtfilename,blockfilename)
 
@@ -537,7 +547,7 @@ class ProfanityBlocker:
         self.runSubprocess(vidprocess)
 
         print(txtconcat)
-        
+
         f = open(txtfilename, "a")
         f.write("\n\nDeleting Clips... \n\n")
         f.close()
@@ -545,7 +555,7 @@ class ProfanityBlocker:
         for trashclip in trashclips:
             try:
                 f = open(txtfilename, "a")
-                
+
                 if os.path.exists(trashclip["name"]):
                     os.remove(trashclip["name"])
                     f.write("deleted clip "+trashclip["name"]+"\n")
@@ -559,7 +569,7 @@ class ProfanityBlocker:
             f.write("\n\nThe Bleeped file saved in: "+blockfilename)
         finally:
             f.close()
-        
+
         self.setFileLocation(blockfilename)
         print("The profanities are now block")
 
@@ -571,4 +581,4 @@ class ProfanityBlocker:
         self.replace()
         self.concat()
 
-        
+
