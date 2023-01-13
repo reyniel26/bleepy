@@ -24,4 +24,4 @@ print("List of Profanities Detected")
 for profanity in profanities:
     print(profanity["word"])
 
-print("The Bleeped file saved in: "+profanityBlocker.get_fileLocation())
+print("The Bleeped file saved in: "+profanityBlocker.get_file_location())

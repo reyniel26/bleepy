@@ -1,4 +1,4 @@
-"""Bleepy file, will be updated later as package or module"""
+"""Bleepy file"""
 import os
 import subprocess
 import sys
@@ -490,7 +490,7 @@ class ProfanityBlocker:
         """Get save directory"""
         return self.__save_directory
 
-    def get_fileLocation(self):
+    def get_file_location(self):
         """Get file location"""
         return self.__filelocation
 
