@@ -9,6 +9,7 @@ audio = AudioFile()
 
 profanityBlocker.setSaveDirectory("bleeped video")
 profanityBlocker.setClipsDirectory("clips")
+
 video.setFile( input("What video you want to block profanity? ") )
 audio.setFile( input("What bleep sound? ") )
 
