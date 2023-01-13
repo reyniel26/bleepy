@@ -53,3 +53,8 @@ Note: FFMPEG is also needed to be installed to run this program.
    - Rename it to model.
 6. Try to run test_bleepy.py.
 
+## Testing and linting
+
+1. `pip install pylint`
+2. `pip install pytest`
+3. `pylint bleepy`

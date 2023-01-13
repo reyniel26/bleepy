@@ -58,7 +58,7 @@ class File:
             print (
                 f"Warning: File: ({file}) not found."+
                 "Please input or set the correct directory of the file")
-            exit (1)
+            sys.exit()
 
     def is_file_allowed(self,file):
         """Return if the file is allowed by checking it if it exist"""
@@ -108,12 +108,14 @@ class MediaFile(File):
         ```
 
         """
-        durationcmd = ['ffprobe', '-v' ,'error', '-show_entries', 'format=duration', '-of' ,'default=noprint_wrappers=1:nokey=1', file]
+        durationcmd = [
+            'ffprobe', '-v' ,'error', '-show_entries',
+            'format=duration', '-of' ,'default=noprint_wrappers=1:nokey=1', file]
         proc = subprocess.Popen(durationcmd, stdout=subprocess.PIPE)
         output = proc.stdout.read()
         output = str(output).replace("\\","")
-        for x in ("b","\'","n","r"):
-            output = output.strip(x)
+        for char in ("b","\'","n","r"):
+            output = output.strip(char)
         self.__duration = float(output)
 
     def get_allowed_exts(self) -> set:
@@ -140,9 +142,9 @@ class MediaFile(File):
         """Check file extension, if not, print error"""
         if not self.is_allowed_ext(extension):
             print (f"Warning: File Extension ({extension}) is not allowed."
-            + f" Please input valid file type {self.get_allowed_exts()}"+
-            " or add extensions by using \'add_allowed_ext(str)\' or \'update_allowed_ext(list)\' " )
-            exit (1)
+            + f" Please input valid file type {self.get_allowed_exts()} or add extensions"+
+            " by using \'add_allowed_ext(str)\' or \'update_allowed_ext(list)\' " )
+            sys.exit()
 
     def is_file_allowed(self,file):
         """
@@ -246,6 +248,7 @@ class SpeechToText():
         self.set_results(results)
 
     def update_recognizer(self):
+        """Update recognizer"""
         SetLogLevel(0)
         print("Updating Recognizer for STT...")
         model = Model(self.get_model())
@@ -269,6 +272,7 @@ class SpeechToText():
         return self.__results
 
     def get_recognizer(self):
+        """Get recognizer"""
         return self.__recognizer
 
     def get_stt_cmd(self):
@@ -290,7 +294,7 @@ class SpeechToText():
                 " Please download the model from https://alphacephei.com/vosk/models"+
                 " and unpack as 'model' in the current folder."
                 )
-            exit (1)
+            sys.exit()
 
     def run(self, video):
         """Run Speech to text"""
@@ -333,14 +337,15 @@ class ProfanityDetector():
         Make List of Results
         """
         #Vosk, KaldiRecognizer obj.Result() and obj.FinalResult() return txt
-        a = txt.split('[')#Split the Result str in open bracket
-        b = a[1].split(']') #Get the 2nd half then Split in Closing Bracket
-        c = b[0].split(', ') #Get the 1st half then Split in comma and space
-        for i in range(len(c)):
-            c[i] = c[i].strip("{}") #remove brackets
-            c[i] = c[i].replace('\n','') #replace newline
-            c[i] = c[i].replace('\"','') #replace "
-        return c #return list of Results
+        a_char = txt.split('[')#Split the Result str in open bracket
+        b_char = a_char[1].split(']') #Get the 2nd half then Split in Closing Bracket
+        c_char = b_char[0].split(', ') #Get the 1st half then Split in comma and space
+        for i, item in enumerate(c_char):
+            item
+            c_char[i] = c_char[i].strip("{}") #remove brackets
+            c_char[i] = c_char[i].replace('\n','') #replace newline
+            c_char[i] = c_char[i].replace('\"','') #replace "
+        return c_char #return list of Results
 
     def extract_list_of_words(self,txt):
         """Make List of Words, extracted from the list of Results"""
@@ -411,10 +416,10 @@ class ProfanityExtractor():
 
     def run(self,results):
         """Run profanity extractor"""
-        profanityDetector = ProfanityDetector(self.get_lang())
+        profanity_detector = ProfanityDetector(self.get_lang())
         for result in results:
             self.extend_profanities(
-                profanityDetector.extract_list_of_profanity(result)
+                profanity_detector.extract_list_of_profanity(result)
                 )
 
 class ProfanityBlocker:
@@ -457,7 +462,7 @@ class ProfanityBlocker:
         if not os.path.exists(self.__save_directory):
             os.makedirs(self.__save_directory)
 
-    def set_fileLocation(self,filelocation):
+    def set_file_location(self,filelocation):
         """Set file location"""
         self.__filelocation = filelocation
 
@@ -514,7 +519,7 @@ class ProfanityBlocker:
         clips = self.get_clips()
 
         videoduration = self.get_video().get_duration()
-        fileExt = self.get_video().get_file_extension()
+        file_ext = self.get_video().get_file_extension()
         fileLocation = self.get_video().get_file()
 
         laststart = 0.0
@@ -531,8 +536,8 @@ class ProfanityBlocker:
             if float(word["start"]) != float(laststart):
                 if wordduration > 1:
                     clipinfo = {
-                        # "name":self.get_clips_directory()+"not"+str(uuid.uuid4())+"."+fileExt,
-                        "name":f"{self.get_clips_directory()}not{uuid.uuid4()}.{fileExt}",
+                        # "name":self.get_clips_directory()+"not"+str(uuid.uuid4())+"."+file_ext,
+                        "name":f"{self.get_clips_directory()}not{uuid.uuid4()}.{file_ext}",
                         "isProfanity":False
                     }
 
@@ -549,7 +554,7 @@ class ProfanityBlocker:
                         clips.append(clipinfo)
 
             clipinfo = {
-                "name":f"{self.get_clips_directory()}profanity{uuid.uuid4()}.{fileExt}",
+                "name":f"{self.get_clips_directory()}profanity{uuid.uuid4()}.{file_ext}",
                 "isProfanity":True
             }
 
@@ -557,17 +562,24 @@ class ProfanityBlocker:
 
             templaststart = float(word["end"])
             if (videoduration - templaststart) < 1:
-                #If the last clip is not long enough, it will be attach already from the previous clip
+                # If the last clip is not long enough,
+                # it will be attach already from the previous clip
                 duration = round(profanityduration+(videoduration - templaststart),2)
-                txtprofanity = txtprofanity.format(fileLocation,word["start"], duration,clipinfo["name"])
+                txtprofanity = txtprofanity.format(
+                    fileLocation,word["start"], duration,clipinfo["name"]
+                    )
                 laststart = videoduration
             elif wordduration < 1:
                 #If the no profanity clip is less than 1
                 duration = round(profanityduration+wordduration,2)
-                txtprofanity = txtprofanity.format(fileLocation,laststart, duration,clipinfo["name"])
+                txtprofanity = txtprofanity.format(
+                    fileLocation,laststart, duration,clipinfo["name"]
+                    )
                 laststart = float(word["end"])
             else:
-                txtprofanity = txtprofanity.format(fileLocation,word["start"], profanityduration,clipinfo["name"])
+                txtprofanity = txtprofanity.format(
+                    fileLocation,word["start"], profanityduration,clipinfo["name"]
+                    )
                 laststart = float(word["end"])
 
             vidprocess = subprocess.Popen(txtprofanity, stdout=subprocess.PIPE)
@@ -578,10 +590,10 @@ class ProfanityBlocker:
                 clips.append(clipinfo)
 
 
-        if(float(laststart) != float(videoduration)):
+        if float(laststart) != float(videoduration):
 
             clipinfo = {
-                "name":self.get_clips_directory()+"last"+str(uuid.uuid4())+"."+fileExt,
+                "name":self.get_clips_directory()+"last"+str(uuid.uuid4())+"."+file_ext,
                 "isProfanity":False
             }
             duration = round((videoduration-laststart),2)
@@ -600,14 +612,14 @@ class ProfanityBlocker:
         self.set_trash_clips(self.get_clips().copy())
 
     def replace(self):
-        fileExt = self.get_video().get_file_extension()
+        file_ext = self.get_video().get_file_extension()
 
         # trashclips = clips.copy()
         clips = self.get_clips()
         trashclips = self.get_trash_clips()
 
         print("Replace")
-        audioFileLocation = self.get_audio().get_file()
+        audio_file_location = self.get_audio().get_file()
 
         for i in range(len(clips)):
             clip=clips[i].copy()
@@ -615,9 +627,9 @@ class ProfanityBlocker:
                 trashclips.append(clip)
 
                 #ready to be replace
-                replacename = self.get_clips_directory()+"replaced"+str(uuid.uuid4())+"."+fileExt
+                replacename = f"{self.get_clips_directory()}replaced{uuid.uuid4()}.{file_ext}"
                 txtreplaced = (
-                    f"ffmpeg -i {clip['name']} -i \"{audioFileLocation}\""+
+                    f"ffmpeg -i {clip['name']} -i \"{audio_file_location}\""+
                     f" -map 0:v -map 1:a -c:v copy -shortest {replacename}")
 
 
@@ -632,17 +644,17 @@ class ProfanityBlocker:
         self.set_trash_clips(trashclips)
 
     def concat(self):
-        fileExt = self.get_video().get_file_extension()
+        file_ext = self.get_video().get_file_extension()
         clips = self.get_clips()
         trashclips = self.get_trash_clips()
 
         print("Concat")
-        txtfilename = self.get_clips_directory()+"listofclips"+str(uuid.uuid4())+".txt"
+        txtfilename = f"{self.get_clips_directory()}listofclips{uuid.uuid4}.txt"
 
         for clip in clips:
             try:
                 f = open(txtfilename, "a")
-                f.write("file "+self.get_clip_dir_for_concat()+clip["name"]+"\n")
+                f.write(f"file {self.get_clip_dir_for_concat()}{clip['name']}\n")
             finally:
                 f.close()
                 print(clip["name"])
@@ -651,7 +663,7 @@ class ProfanityBlocker:
         #concat
         print("\nFFMPEG CONCAT FINAL:----")
 
-        blockfilename = self.get_save_directory()+"blocked"+str(uuid.uuid4())+"."+fileExt
+        blockfilename = f"{self.get_save_directory()}blocked{uuid.uuid4()}.{file_ext}"
 
         txtconcat = f"ffmpeg -safe 0 -f concat -i \"{txtfilename}\" -c copy \"{blockfilename}\""
 
@@ -682,7 +694,7 @@ class ProfanityBlocker:
         finally:
             f.close()
 
-        self.set_fileLocation(blockfilename)
+        self.set_file_location(blockfilename)
         print("The profanities are now block")
 
     def run(self, video:VideoFile, audio:AudioFile, profanities:list):
@@ -693,5 +705,3 @@ class ProfanityBlocker:
         self.split(profanities)
         self.replace()
         self.concat()
-
-
