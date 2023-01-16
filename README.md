@@ -27,7 +27,7 @@ Note: FFMPEG is also needed to be installed to run this program.
 2. Install Python 3.
    - Download [here](https://www.python.org/downloads/)
    - Python version 3.9 or above
-   - Create a virtual environment by running python -m venv venv
+   - Create a virtual environment by running `python -m venv venv`
    - Activate the virtual environment by running .\venv\Scripts\Activate.ps1
    - Check if you have the right python version: python --version should output 3.9.0 or higher
 
@@ -58,3 +58,8 @@ Note: FFMPEG is also needed to be installed to run this program.
 1. `pip install pylint`
 2. `pip install pytest`
 3. `pylint bleepy`
+
+## Trouble in FFMPEG
+
+`set PATH=%PATH%;<somepathhere>\ffmpeg\bin`
+E.g. `set PATH=%PATH%;C:\Users\Username\ffmpeg\bin`

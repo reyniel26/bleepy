@@ -3,10 +3,12 @@ import os
 import subprocess
 import sys
 import uuid  # create unique random id
-import wave
 
 from profanity_check import predict, predict_prob
 from vosk import KaldiRecognizer, Model, SetLogLevel
+
+# import wave
+
 
 
 class File:
@@ -432,7 +434,7 @@ class ProfanityBlocker:
         self.__trashclips = []
         self.__clips_directory = ""
         self.__save_directory = ""
-        self.__filelocation = ""
+        self.__file_location = ""
 
     def set_video(self, video):
         """Set video"""
@@ -462,9 +464,9 @@ class ProfanityBlocker:
         if not os.path.exists(self.__save_directory):
             os.makedirs(self.__save_directory)
 
-    def set_file_location(self,filelocation):
+    def set_file_location(self,file_location):
         """Set file location"""
-        self.__filelocation = filelocation
+        self.__file_location = file_location
 
     def decorate_dir_name(self,directory):
         """Decorate directory name """
@@ -497,7 +499,7 @@ class ProfanityBlocker:
 
     def get_file_location(self):
         """Get file location"""
-        return self.__filelocation
+        return self.__file_location
 
     def get_clip_dir_for_concat(self):
         """Get directory for concat"""
@@ -520,7 +522,7 @@ class ProfanityBlocker:
 
         videoduration = self.get_video().get_duration()
         file_ext = self.get_video().get_file_extension()
-        fileLocation = self.get_video().get_file()
+        file_location = self.get_video().get_file()
 
         laststart = 0.0
         print("SPLIT")
@@ -542,7 +544,7 @@ class ProfanityBlocker:
                     }
 
                     txtnoprofanity = (
-                        f"ffmpeg -i \"{fileLocation}\" -ss {laststart}"+
+                        f"ffmpeg -i \"{file_location}\" -ss {laststart}"+
                         f" -t {wordduration} -c:v h264_nvenc {clipinfo['name']}")
 
                     vidprocess = subprocess.Popen(txtnoprofanity, stdout=subprocess.PIPE)
@@ -566,19 +568,19 @@ class ProfanityBlocker:
                 # it will be attach already from the previous clip
                 duration = round(profanityduration+(videoduration - templaststart),2)
                 txtprofanity = txtprofanity.format(
-                    fileLocation,word["start"], duration,clipinfo["name"]
+                    file_location,word["start"], duration,clipinfo["name"]
                     )
                 laststart = videoduration
             elif wordduration < 1:
                 #If the no profanity clip is less than 1
                 duration = round(profanityduration+wordduration,2)
                 txtprofanity = txtprofanity.format(
-                    fileLocation,laststart, duration,clipinfo["name"]
+                    file_location,laststart, duration,clipinfo["name"]
                     )
                 laststart = float(word["end"])
             else:
                 txtprofanity = txtprofanity.format(
-                    fileLocation,word["start"], profanityduration,clipinfo["name"]
+                    file_location,word["start"], profanityduration,clipinfo["name"]
                     )
                 laststart = float(word["end"])
 
@@ -598,7 +600,7 @@ class ProfanityBlocker:
             }
             duration = round((videoduration-laststart),2)
             lastclip = (
-                f"ffmpeg -i \"{fileLocation}\" -ss {laststart}"+
+                f"ffmpeg -i \"{file_location}\" -ss {laststart}"+
                 f" -t {duration} -c:v h264_nvenc {clipinfo['name']}")
 
             vidprocess = subprocess.Popen(lastclip, stdout=subprocess.PIPE)
@@ -649,14 +651,15 @@ class ProfanityBlocker:
         trashclips = self.get_trash_clips()
 
         print("Concat")
-        txtfilename = f"{self.get_clips_directory()}listofclips{uuid.uuid4}.txt"
+        txtfilename = f"{self.get_clips_directory()}listofclips{uuid.uuid4()}.txt"
 
         for clip in clips:
+
             try:
                 f = open(txtfilename, "a")
                 f.write(f"file {self.get_clip_dir_for_concat()}{clip['name']}\n")
-            finally:
                 f.close()
+            finally:
                 print(clip["name"])
 
 
