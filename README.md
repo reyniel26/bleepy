@@ -17,7 +17,7 @@ Note: FFMPEG is also needed to be installed to run this program.
 2. bleepy-profanity-check
    - Profanity checker in string that uses machine learning
    - https://pypi.org/project/bleepy-profanity-check/
-   - https://github.com/dimitrismistriotis/profanity-check
+   - https://github.com/reyniel26/bleepy-profanity-check
 
 ## Development
 
